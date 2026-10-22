@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f3f4f7">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<title>Reclamaciones WhatsApp</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Reclamaciones">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: una columna estilo app de iPhone; formulario arriba, vista previa tipo burbuja y barra fija de acciones abajo */
+:root {
+  --bg: #f3f4f7;
+  --surface: #ffffff;
+  --fg: #1b1f2a;
+  --muted: #646b7d;
+  --line: #dde0e8;
+  --accent: #2f4fd8;
+  --accent-fg: #ffffff;
+  --bubble: #e3f5dc;
+  --bubble-fg: #1b2a1b;
+  --warn: #b5560f;
+  --ok: #1f7a43;
+  --font-body: "Instrument Sans", -apple-system, "SF Pro Text", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12141b; --surface: #1c1f29; --fg: #e8eaf1; --muted: #9aa1b4; --line: #2d3140;
+    --accent: #7b93ff; --accent-fg: #0f1222; --bubble: #1f3a26; --bubble-fg: #e3f2e3;
+    --warn: #f0a060; --ok: #6fd39a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12141b; --surface: #1c1f29; --fg: #e8eaf1; --muted: #9aa1b4; --line: #2d3140;
+  --accent: #7b93ff; --accent-fg: #0f1222; --bubble: #1f3a26; --bubble-fg: #e3f2e3;
+  --warn: #f0a060; --ok: #6fd39a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { padding-top: env(safe-area-inset-top, 0px); }
+body { margin: 0; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap {
+  max-width: 560px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 140px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+header > div { min-width: 0; flex: 1 1 200px; }
+h1 { font-size: 26px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 4px 0 0; font-size: 14px; }
+.linkbtn {
+  background: none; border: 1px solid var(--line); color: var(--fg); border-radius: 10px;
+  padding: 8px 12px; font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap;
+}
+.linkbtn:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 2px;
+}
+.group { background: var(--surface); border-radius: 14px; overflow: hidden; border: 1px solid var(--line); }
+.group-title {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+  margin: 0 0 8px 4px; font-weight: 600;
+}
+.field { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-top: 1px solid var(--line); }
+.field:first-child { border-top: 0; }
+.field label { font-size: 13px; color: var(--muted); font-weight: 500; display: flex; gap: 6px; }
+.field label .req { color: var(--warn); }
+.field.missing label { color: var(--warn); }
+select, input, textarea {
+  font: inherit; font-size: 17px; color: var(--fg); background: transparent;
+  border: 0; padding: 4px 0; width: 100%; min-width: 0;
+}
+select {
+  -webkit-appearance: none; appearance: none; padding-right: 24px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 12px) 55%, calc(100% - 6px) 55%;
+  background-size: 6px 6px; background-repeat: no-repeat;
+}
+select option { color: initial; }
+input.mono { font-family: var(--font-mono); font-size: 16px; }
+textarea { resize: vertical; min-height: 72px; line-height: 1.4; }
+.preview-head { display: flex; justify-content: space-between; align-items: baseline; }
+.status { font-size: 13px; color: var(--ok); }
+.status.warn { color: var(--warn); }
+.bubble {
+  background: var(--bubble); color: var(--bubble-fg); border-radius: 14px 14px 14px 4px;
+  padding: 12px 14px; font-size: 15px; line-height: 1.45; white-space: pre-wrap; word-break: break-word;
+}
+.actions {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.actions-inner { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; }
+.btn {
+  font: inherit; font-weight: 600; font-size: 16px; border-radius: 12px; padding: 14px 12px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer;
+  text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center;
+}
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn:active { transform: scale(0.98); }
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 6;
+  background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px;
+  font-weight: 600;
+}
+.hint { color: var(--muted); font-size: 13px; line-height: 1.45; margin: 0 4px; }
+.settings textarea { font-size: 15px; min-height: 120px; }
+.settings .field small { color: var(--muted); font-size: 12px; }
+.row-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.danger { color: var(--warn); }
+@media (prefers-reduced-motion: reduce) { .btn:active { transform: none; } }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header>
+    <div>
+      <h1>Reclamaciones</h1>
+      <p class="sub">Llena los campos y copia el mensaje para WhatsApp.</p>
+    </div>
+    <button class="linkbtn" id="toggleSettings" type="button">Editar listas</button>
+  </header>
+
+  <!-- Vista principal -->
+  <section id="formView" style="display:flex;flex-direction:column;gap:20px">
+    <div>
+      <p class="group-title">Datos del cliente</p>
+      <div class="group">
+        <div class="field" data-key="cliente">
+          <label for="cliente">Nombre del cliente <span class="req">*</span></label>
+          <input id="cliente" type="text" autocomplete="off" placeholder="Ej. María López">
+        </div>
+        <div class="field" data-key="folio">
+          <label for="folio">Pedido / folio <span class="req">*</span></label>
+          <input id="folio" class="mono" type="text" autocomplete="off" inputmode="text" placeholder="Ej. PED-10482">
+        </div>
+        <div class="field" data-key="fecha">
+          <label for="fecha">Fecha</label>
+          <input id="fecha" type="date">
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="group-title">Reclamación</p>
+      <div class="group" id="selectGroup"></div>
+    </div>
+
+    <div>
+      <p class="group-title">Detalle</p>
+      <div class="group">
+        <div class="field" data-key="detalle">
+          <label for="detalle">Descripción (opcional)</label>
+          <textarea id="detalle" placeholder="Ej. Llegaron 2 cajas abolladas de 10."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="preview-head">
+        <p class="group-title">Vista previa</p>
+        <span class="status" id="status"></span>
+      </div>
+      <div class="bubble" id="preview" aria-live="polite"></div>
+    </div>
+
+    <p class="hint">Para usarla como app: abre esta página en Safari, toca Compartir y elige “Agregar a pantalla de inicio”.</p>
+  </section>
+
+  <!-- Ajustes -->
+  <section id="settingsView" class="settings" hidden style="flex-direction:column;gap:20px">
+    <p class="hint">Escribe una opción por renglón. Los cambios se guardan en este teléfono.</p>
+    <div>
+      <p class="group-title">Encabezado del mensaje</p>
+      <div class="group">
+        <div class="field">
+          <label for="set-titulo">Título</label>
+          <input id="set-titulo" type="text">
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="group-title">Listas desplegables</p>
+      <div class="group" id="settingsLists"></div>
+    </div>
+    <div class="row-btns">
+      <button class="btn primary" id="saveSettings" type="button" style="flex:1">Guardar</button>
+      <button class="btn" id="cancelSettings" type="button" style="flex:1">Cancelar</button>
+    </div>
+    <div class="row-btns">
+      <button class="btn danger" id="resetSettings" type="button" style="flex:1">Restaurar ejemplo</button>
+    </div>
+    <p class="hint" id="resetConfirm" hidden>¿Seguro? Se borrarán tus listas. <button class="linkbtn danger" id="resetYes" type="button">Sí, restaurar</button></p>
+  </section>
+</div>
+
+<div class="actions" id="actions">
+  <div class="actions-inner">
+    <button class="btn primary" id="copyBtn" type="button">Copiar</button>
+    <a class="btn" id="waBtn" href="#" target="_blank" rel="noopener">WhatsApp</a>
+    <button class="btn" id="clearBtn" type="button" aria-label="Limpiar formulario">Limpiar</button>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function () {
+  var STORE_KEY = "reclamaciones.config.v1";
+  var DRAFT_KEY = "reclamaciones.draft.v1";
+
+  // Listas de ejemplo; el usuario las cambia en "Editar listas"
+  var DEFAULT = {
+    titulo: "RECLAMACIÓN",
+    lists: [
+      { key: "tipo", label: "Tipo de reclamación", required: true,
+        options: ["Producto dañado", "Producto incorrecto", "Faltante de producto", "Retraso en entrega", "Cobro incorrecto", "Mala atención", "Otro"] },
+      { key: "area", label: "Área responsable", required: true,
+        options: ["Ventas", "Almacén", "Paquetería", "Facturación", "Atención a clientes"] },
+      { key: "prioridad", label: "Prioridad", required: true,
+        options: ["Baja", "Media", "Alta", "Urgente"] },
+      { key: "solucion", label: "Solución solicitada", required: true,
+        options: ["Reemplazo", "Reembolso", "Nota de crédito", "Reenvío", "Visita técnica", "Solo registrar"] }
+    ]
+  };
+
+  function load(key) { try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  var config = load(STORE_KEY) || clone(DEFAULT);
+  var $ = function (id) { return document.getElementById(id); };
+
+  function todayISO() {
+    var d = new Date(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + m + "-" + day;
+  }
+  function fmtDate(iso) {
+    if (!iso) return "";
+    var p = iso.split("-"); return p[2] + "/" + p[1] + "/" + p[0];
+  }
+
+  function renderSelects(values) {
+    var g = $("selectGroup"); g.innerHTML = "";
+    config.lists.forEach(function (l) {
+      var f = document.createElement("div"); f.className = "field"; f.dataset.key = l.key;
+      var lab = document.createElement("label"); lab.htmlFor = "sel-" + l.key;
+      lab.textContent = l.label + " ";
+      if (l.required) { var s = document.createElement("span"); s.className = "req"; s.textContent = "*"; lab.appendChild(s); }
+      var sel = document.createElement("select"); sel.id = "sel-" + l.key;
+      var o0 = document.createElement("option"); o0.value = ""; o0.textContent = "Elegir…"; sel.appendChild(o0);
+      l.options.forEach(function (op) { var o = document.createElement("option"); o.value = op; o.textContent = op; sel.appendChild(o); });
+      if (values && values[l.key] && l.options.indexOf(values[l.key]) >= 0) sel.value = values[l.key];
+      sel.addEventListener("change", update);
+      f.appendChild(lab); f.appendChild(sel); g.appendChild(f);
+    });
+  }
+
+  function readValues() {
+    var v = { cliente: $("cliente").value.trim(), folio: $("folio").value.trim(), fecha: $("fecha").value, detalle: $("detalle").value.trim() };
+    config.lists.forEach(function (l) { var el = $("sel-" + l.key); v[l.key] = el ? el.value : ""; });
+    return v;
+  }
+
+  function buildMessage(v) {
+    var lines = [];
+    lines.push("*" + (config.titulo || "RECLAMACIÓN") + "*");
+    lines.push("");
+    lines.push("*Fecha:* " + (fmtDate(v.fecha) || "—"));
+    lines.push("*Cliente:* " + (v.cliente || "—"));
+    lines.push("*Pedido / folio:* " + (v.folio || "—"));
+    lines.push("");
+    config.lists.forEach(function (l) { lines.push("*" + l.label + ":* " + (v[l.key] || "—")); });
+    if (v.detalle) { lines.push(""); lines.push("*Detalle:*"); lines.push(v.detalle); }
+    return lines.join("\n");
+  }
+
+  function escapeHTML(s) { return s.replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function waToHTML(s) { return escapeHTML(s).replace(/\*([^*\n]+)\*/g, "<b>$1</b>"); }
+
+  function missingFields(v) {
+    var m = [];
+    if (!v.cliente) m.push({ key: "cliente", label: "Cliente" });
+    if (!v.folio) m.push({ key: "folio", label: "Folio" });
+    config.lists.forEach(function (l) { if (l.required && !v[l.key]) m.push({ key: l.key, label: l.label }); });
+    return m;
+  }
+
+  var current = "";
+  function update() {
+    var v = readValues();
+    current = buildMessage(v);
+    $("preview").innerHTML = waToHTML(current);
+    var miss = missingFields(v);
+    document.querySelectorAll(".field.missing").forEach(function (f) { f.classList.remove("missing"); });
+    var st = $("status");
+    if (miss.length) {
+      st.className = "status warn";
+      st.textContent = "Faltan " + miss.length + " campo" + (miss.length > 1 ? "s" : "");
+    } else {
+      st.className = "status"; st.textContent = "Listo para enviar";
+    }
+    $("waBtn").href = "https://wa.me/?text=" + encodeURIComponent(current);
+    save(DRAFT_KEY, v);
+  }
+
+  function markMissing() {
+    var miss = missingFields(readValues());
+    miss.forEach(function (m) { var f = document.querySelector('.field[data-key="' + m.key + '"]'); if (f) f.classList.add("missing"); });
+    return miss;
+  }
+
+  var toastTimer;
+  function toast(msg) {
+    var t = $("toast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 2200);
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", "");
+    ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta);
+    ta.select(); ta.setSelectionRange(0, text.length);
+    var ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta); return ok;
+  }
+
+  $("copyBtn").addEventListener("click", function () {
+    var miss = markMissing();
+    var text = current;
+    var done = function (ok) {
+      if (!ok) { toast("No se pudo copiar. Mantén presionado el texto para copiarlo."); return; }
+      toast(miss.length ? "Copiado (faltan " + miss.length + " campos)" : "Mensaje copiado");
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(fallbackCopy(text)); });
+    } else { done(fallbackCopy(text)); }
+  });
+
+  $("waBtn").addEventListener("click", function () { markMissing(); });
+
+  $("clearBtn").addEventListener("click", function () {
+    ["cliente", "folio", "detalle"].forEach(function (id) { $(id).value = ""; });
+    $("fecha").value = todayISO();
+    config.lists.forEach(function (l) { var el = $("sel-" + l.key); if (el) el.value = ""; });
+    update(); toast("Formulario limpio");
+  });
+
+  ["cliente", "folio", "fecha", "detalle"].forEach(function (id) { $(id).addEventListener("input", update); });
+
+  // Ajustes
+  function openSettings() {
+    $("set-titulo").value = config.titulo;
+    var g = $("settingsLists"); g.innerHTML = "";
+    config.lists.forEach(function (l) {
+      var f = document.createElement("div"); f.className = "field";
+      var lab = document.createElement("label"); lab.htmlFor = "set-" + l.key; lab.textContent = l.label;
+      var name = document.createElement("input"); name.type = "text"; name.id = "set-name-" + l.key; name.value = l.label;
+      name.setAttribute("aria-label", "Nombre del campo");
+      var small = document.createElement("small"); small.textContent = "Opciones (una por renglón)";
+      var ta = document.createElement("textarea"); ta.id = "set-" + l.key; ta.value = l.options.join("\n");
+      f.appendChild(lab); f.appendChild(name); f.appendChild(small); f.appendChild(ta); g.appendChild(f);
+    });
+    $("formView").hidden = true; $("actions").hidden = true;
+    $("settingsView").hidden = false; $("settingsView").style.display = "flex";
+    $("resetConfirm").hidden = true;
+    $("toggleSettings").textContent = "Volver";
+    window.scrollTo(0, 0);
+  }
+  function closeSettings() {
+    $("settingsView").hidden = true; $("settingsView").style.display = "";
+    $("formView").hidden = false; $("actions").hidden = false;
+    $("toggleSettings").textContent = "Editar listas";
+  }
+  $("toggleSettings").addEventListener("click", function () { $("settingsView").hidden ? openSettings() : closeSettings(); });
+  $("cancelSettings").addEventListener("click", closeSettings);
+  $("saveSettings").addEventListener("click", function () {
+    var keep = readValues();
+    config.titulo = $("set-titulo").value.trim() || "RECLAMACIÓN";
+    config.lists.forEach(function (l) {
+      var n = $("set-name-" + l.key).value.trim(); if (n) l.label = n;
+      l.options = $("set-" + l.key).value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+    });
+    save(STORE_KEY, config);
+    renderSelects(keep); update(); closeSettings(); toast("Listas guardadas");
+  });
+  $("resetSettings").addEventListener("click", function () { $("resetConfirm").hidden = false; });
+  $("resetYes").addEventListener("click", function () {
+    config = clone(DEFAULT); save(STORE_KEY, config);
+    renderSelects(readValues()); update(); closeSettings(); toast("Listas de ejemplo restauradas");
+  });
+
+  // Arranque: borrador guardado o ejemplo
+  var draft = load(DRAFT_KEY);
+  var start = draft || { cliente: "María López", folio: "PED-10482", fecha: todayISO(), tipo: "Producto dañado", area: "Paquetería", prioridad: "Alta", solucion: "Reemplazo", detalle: "Llegaron 2 cajas abolladas de 10. Envío fotos aparte." };
+  $("cliente").value = start.cliente || "";
+  $("folio").value = start.folio || "";
+  $("fecha").value = start.fecha || todayISO();
+  $("detalle").value = start.detalle || "";
+  renderSelects(start);
+  update();
+})();
+</script>
+</body>
+</html>
