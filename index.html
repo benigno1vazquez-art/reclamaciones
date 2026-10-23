@@ -112,6 +112,16 @@ input[type="date"] { min-height: 30px; }
   font: inherit; font-size: 12px; color: var(--muted); background: none; border: 0; padding: 2px 0;
   text-decoration: underline; text-underline-offset: 2px; cursor: pointer; flex: none;
 }
+.vh { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.field label.photo-add { align-self: flex-start; color: var(--fg); font-size: 14px; font-weight: 600; display: inline-flex; }
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; }
+.photos:empty { display: none; }
+.thumb { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); max-width: 100%; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb button {
+  position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; border-radius: 50%; border: 0;
+  background: rgb(0 0 0 / 0.6); color: #fff; font-size: 16px; line-height: 28px; padding: 0; cursor: pointer;
+}
 .names-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .names-panel { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
 .names-panel textarea { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 15px; min-height: 160px; }
@@ -256,6 +266,18 @@ input[type="date"] { min-height: 30px; }
   </div>
 
   <div>
+    <p class="group-title">Fotos (opcional)</p>
+    <div class="group">
+      <div class="field">
+        <div class="photos" id="photos"></div>
+        <label class="btn small photo-add" for="photoInput">Agregar foto</label>
+        <input id="photoInput" type="file" accept="image/*" multiple class="vh">
+        <span class="help" id="photoHelp">Toma una foto o elígela de tu galería. Con fotos, el botón WhatsApp cambia a “Enviar”, que manda las fotos junto con el mensaje.</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
     <div class="preview-head">
       <p class="group-title">Vista previa</p>
       <span class="status" id="status"></span>
@@ -274,6 +296,7 @@ input[type="date"] { min-height: 30px; }
   <div class="actions-inner">
     <button class="btn primary" id="copyBtn" type="button">Copiar</button>
     <a class="btn" id="waBtn" href="#" target="_blank" rel="noopener">WhatsApp</a>
+    <button class="btn" id="shareBtn" type="button" hidden>Enviar</button>
     <button class="btn" id="clearBtn" type="button">Limpiar</button>
   </div>
 </div>
@@ -523,11 +546,48 @@ input[type="date"] { min-height: 30px; }
   });
   $("waBtn").addEventListener("click", function () { markMissing(); });
 
+  // Fotos: viven solo en memoria mientras la app está abierta; se mandan con la hoja de Compartir del iPhone
+  var photos = [];
+  function renderPhotos() {
+    var box = $("photos"); box.innerHTML = "";
+    photos.forEach(function (ph, i) {
+      var d = document.createElement("div"); d.className = "thumb";
+      var img = document.createElement("img"); img.src = ph.url; img.alt = "Foto " + (i + 1);
+      var x = document.createElement("button"); x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", "Quitar foto " + (i + 1));
+      x.addEventListener("click", function () { URL.revokeObjectURL(ph.url); photos.splice(i, 1); renderPhotos(); });
+      d.appendChild(img); d.appendChild(x); box.appendChild(d);
+    });
+    var has = photos.length > 0;
+    $("waBtn").hidden = has; $("shareBtn").hidden = !has;
+    $("shareBtn").textContent = has ? "Enviar (" + photos.length + ")" : "Enviar";
+    document.querySelector(".photo-add").textContent = has ? "Agregar otra foto" : "Agregar foto";
+  }
+  $("photoInput").addEventListener("change", function (e) {
+    Array.prototype.forEach.call(e.target.files || [], function (f) {
+      if (f.type.indexOf("image/") === 0) photos.push({ file: f, url: URL.createObjectURL(f) });
+    });
+    e.target.value = ""; renderPhotos();
+  });
+  $("shareBtn").addEventListener("click", function () {
+    markMissing();
+    var files = photos.map(function (p) { return p.file; });
+    var data = { files: files, text: current };
+    if (!navigator.share || (navigator.canShare && !navigator.canShare({ files: files }))) {
+      toast("Este navegador no puede enviar fotos. Copia el mensaje y adjunta la foto en WhatsApp.");
+      return;
+    }
+    navigator.share(data).catch(function (err) {
+      if (err && err.name === "AbortError") return;
+      toast("No se pudo compartir. Copia el mensaje y adjunta la foto en WhatsApp.");
+    });
+  });
+
   $("clearBtn").addEventListener("click", function () { $("clearConfirm").hidden = false; $("clearConfirm").scrollIntoView({ block: "center" }); });
   $("clearNo").addEventListener("click", function () { $("clearConfirm").hidden = true; });
   $("clearYes").addEventListener("click", function () {
     document.querySelectorAll('input[name="zp57"]').forEach(function (r) { r.checked = false; });
     ["po", "herramienta", "descripcion"].forEach(function (id) { $(id).value = ""; });
+    photos.forEach(function (p) { URL.revokeObjectURL(p.url); }); photos = []; renderPhotos();
     hideSugg();
     $("folio").value = newFolio(); $("fecha").value = todayISO();
     ["area", "modo", "impacto"].forEach(function (id) { $(id).value = ""; });
