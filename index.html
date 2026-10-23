@@ -99,6 +99,15 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.4; }
 .folio { font-family: var(--font-mono); font-size: 18px; font-weight: 600; letter-spacing: 0.02em; min-width: 0; overflow-wrap: anywhere; }
 .btn.small { padding: 8px 12px; font-size: 14px; flex: none; }
 input[type="date"] { min-height: 30px; }
+.ac { position: relative; }
+.sugg {
+  list-style: none; margin: 4px 0 0; padding: 4px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+}
+.sugg li { padding: 10px 10px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; gap: 10px; font-size: 16px; }
+.sugg li small { color: var(--muted); font-size: 12px; flex: none; align-self: center; }
+.sugg li.active, .sugg li:active { background: var(--bubble); color: var(--bubble-fg); }
+.sugg li b { color: var(--accent); font-weight: 700; }
 .names-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .names-panel { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
 .names-panel textarea { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 15px; min-height: 160px; }
@@ -195,8 +204,8 @@ input[type="date"] { min-height: 30px; }
       </div>
       <div class="field" data-key="herramienta">
         <label for="herramienta"><span class="n">4</span>Herramienta <span class="req">*</span></label>
-        <input id="herramienta" class="mono" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="T-XXXXXXXX-XXXX">
-        <span class="help" id="herr-help">Formato T-XXXXXXXX-XXXX. Los guiones se ponen solos.</span>
+        <input id="herramienta" class="mono" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="T-XXXXXXXX-XXXX">
+        <span class="help" id="herr-help">Escribe solo los números; la T y los guiones se ponen solos.</span>
       </div>
     </div>
   </div>
@@ -218,8 +227,10 @@ input[type="date"] { min-height: 30px; }
       </div>
       <div class="field" data-key="responsable">
         <label for="responsable"><span class="n">8</span>Responsable de la falla <span class="req">*</span></label>
-        <select id="responsableSel"></select>
-        <input id="responsable" type="text" autocomplete="off" autocapitalize="words" placeholder="Escribe: Apellido, Nombre(s)" hidden>
+        <div class="ac">
+          <input id="responsable" type="text" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" placeholder="Escribe un nombre o apellido" role="combobox" aria-autocomplete="list" aria-controls="sugg" aria-expanded="false">
+          <ul class="sugg" id="sugg" role="listbox" hidden></ul>
+        </div>
         <div class="names-row">
           <span class="help" id="namesInfo"></span>
           <button class="btn small" id="namesEdit" type="button">Cargar nombres</button>
@@ -336,7 +347,7 @@ input[type="date"] { min-height: 30px; }
   }
 
   // Lista de responsables: vive solo en el teléfono (localStorage), nunca en la página pública
-  var NAMES_KEY = "incidencias.responsables.v1", OTRO = "__otro__";
+  var NAMES_KEY = "incidencias.responsables.v1";
   function parseNames(text) {
     var groups = [], cur = null;
     text.split(/\r?\n/).forEach(function (line) {
@@ -354,26 +365,58 @@ input[type="date"] { min-height: 30px; }
   var nameGroups = loadNames();
   function allNames() { var a = []; nameGroups.forEach(function (g) { a = a.concat(g.names); }); return a; }
 
-  function fillResponsables(value) {
-    var sel = $("responsableSel"); sel.innerHTML = "";
+  function refreshNamesInfo() {
     var total = allNames().length;
-    var o0 = document.createElement("option"); o0.value = ""; o0.textContent = total ? "Elegir…" : "Sin lista: elige Otro o carga nombres"; sel.appendChild(o0);
-    nameGroups.forEach(function (g) {
-      var parent = sel;
-      if (g.label) { parent = document.createElement("optgroup"); parent.label = g.label; sel.appendChild(parent); }
-      g.names.forEach(function (n) { var o = document.createElement("option"); o.value = n; o.textContent = n; parent.appendChild(o); });
-    });
-    var oo = document.createElement("option"); oo.value = OTRO; oo.textContent = "Otro (escribir nombre)"; sel.appendChild(oo);
-    var known = !!value && allNames().indexOf(value) >= 0;
-    sel.value = !value ? "" : known ? value : OTRO;
-    $("responsable").hidden = sel.value !== OTRO;
-    $("responsable").value = known ? "" : (value || "");
-    $("namesInfo").textContent = total ? total + " nombres guardados en este teléfono" : "Aún no hay nombres en este teléfono";
+    $("namesInfo").textContent = total ? total + " nombres guardados en este teléfono" : "Aún no hay nombres: carga la lista para autocompletar";
     $("namesEdit").textContent = total ? "Editar nombres" : "Cargar nombres";
   }
-  function responsableValue() {
-    var sel = $("responsableSel").value;
-    return sel === OTRO ? $("responsable").value.trim() : sel;
+  function responsableValue() { return $("responsable").value.trim(); }
+
+  // Autocompletado: cada palabra escrita debe coincidir con el inicio de alguna palabra del nombre (sin importar acentos)
+  function norm(t) { return t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(); }
+  var activeIdx = -1, matches = [];
+  function findMatches(q) {
+    var toks = norm(q).split(/[\s,]+/).filter(Boolean);
+    if (!toks.length) return [];
+    var out = [];
+    nameGroups.forEach(function (g) {
+      g.names.forEach(function (n) {
+        var words = norm(n).split(/[\s,]+/);
+        var ok = toks.every(function (t) { return words.some(function (w) { return w.indexOf(t) === 0; }); });
+        if (ok) out.push({ name: n, group: g.label });
+      });
+    });
+    return out.slice(0, 8);
+  }
+  function highlight(name, q) {
+    var toks = norm(q).split(/[\s,]+/).filter(Boolean);
+    return name.split(/(\s+|,)/).map(function (w) {
+      var nw = norm(w), t = toks.filter(function (x) { return nw.indexOf(x) === 0; }).sort(function (a, b) { return b.length - a.length; })[0];
+      return t ? "<b>" + escapeHTML(w.slice(0, t.length)) + "</b>" + escapeHTML(w.slice(t.length)) : escapeHTML(w);
+    }).join("");
+  }
+  function showSugg() {
+    var q = $("responsable").value, list = $("sugg");
+    matches = allNames().indexOf(q.trim()) >= 0 ? [] : findMatches(q);
+    activeIdx = -1; list.innerHTML = "";
+    matches.forEach(function (m, i) {
+      var li = document.createElement("li"); li.setAttribute("role", "option"); li.id = "sugg-" + i;
+      li.innerHTML = "<span>" + highlight(m.name, q) + "</span>" + (m.group ? "<small>" + escapeHTML(m.group) + "</small>" : "");
+      li.addEventListener("pointerdown", function (e) { e.preventDefault(); pick(i); });
+      list.appendChild(li);
+    });
+    list.hidden = !matches.length;
+    $("responsable").setAttribute("aria-expanded", String(!!matches.length));
+  }
+  function hideSugg() { $("sugg").hidden = true; $("responsable").setAttribute("aria-expanded", "false"); }
+  function pick(i) {
+    $("responsable").value = matches[i].name; hideSugg(); update(); $("responsable").blur();
+  }
+  function setActive(i) {
+    var items = $("sugg").children; if (!items.length) return;
+    activeIdx = (i + items.length) % items.length;
+    Array.prototype.forEach.call(items, function (li, k) { li.classList.toggle("active", k === activeIdx); });
+    $("responsable").setAttribute("aria-activedescendant", "sugg-" + activeIdx);
   }
 
   function readValues() {
@@ -481,7 +524,7 @@ input[type="date"] { min-height: 30px; }
   $("clearYes").addEventListener("click", function () {
     document.querySelectorAll('input[name="zp57"]').forEach(function (r) { r.checked = false; });
     ["po", "herramienta", "descripcion"].forEach(function (id) { $(id).value = ""; });
-    fillResponsables("");
+    hideSugg();
     $("folio").value = newFolio(); $("fecha").value = todayISO();
     ["area", "modo", "impacto"].forEach(function (id) { $(id).value = ""; });
     syncSubarea("");
@@ -500,20 +543,23 @@ input[type="date"] { min-height: 30px; }
   });
   ["subarea", "modo", "impacto"].forEach(function (id) { $(id).addEventListener("change", update); });
   ["po", "descripcion", "responsable"].forEach(function (id) { $(id).addEventListener("input", update); });
-  $("responsableSel").addEventListener("change", function () {
-    var otro = this.value === OTRO; $("responsable").hidden = !otro;
-    if (otro) $("responsable").focus();
-    update();
+  $("responsable").addEventListener("input", showSugg);
+  $("responsable").addEventListener("blur", function () { setTimeout(hideSugg, 150); });
+  $("responsable").addEventListener("keydown", function (e) {
+    if ($("sugg").hidden) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setActive(activeIdx + 1); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActive(activeIdx - 1); }
+    else if (e.key === "Enter") { e.preventDefault(); pick(activeIdx >= 0 ? activeIdx : 0); }
+    else if (e.key === "Escape") { hideSugg(); }
   });
   $("namesEdit").addEventListener("click", function () {
     $("namesText").value = groupsToText(nameGroups); $("namesPanel").hidden = false; $("namesText").focus();
   });
   $("namesCancel").addEventListener("click", function () { $("namesPanel").hidden = true; });
   $("namesSave").addEventListener("click", function () {
-    var keep = responsableValue();
     nameGroups = parseNames($("namesText").value);
     try { localStorage.setItem(NAMES_KEY, JSON.stringify(nameGroups)); } catch (e) { toast("No se pudo guardar en este teléfono"); }
-    fillResponsables(keep); $("namesPanel").hidden = true; update();
+    refreshNamesInfo(); $("namesPanel").hidden = true; update();
     toast(allNames().length + " nombres guardados");
   });
   document.querySelectorAll('input[name="zp57"]').forEach(function (r) { r.addEventListener("change", update); });
@@ -530,7 +576,8 @@ input[type="date"] { min-height: 30px; }
   $("po").value = start.po || "";
   $("herramienta").value = start.herramienta || "";
   $("descripcion").value = start.descripcion || "";
-  fillResponsables(start.responsable || "");
+  $("responsable").value = start.responsable || "";
+  refreshNamesInfo();
   update();
 })();
 </script>
