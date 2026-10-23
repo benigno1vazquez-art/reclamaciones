@@ -200,7 +200,7 @@ input[type="date"] { min-height: 30px; }
     <div class="group">
       <div class="field" data-key="po">
         <label for="po"><span class="n">3</span>PO <span class="req">*</span></label>
-        <input id="po" class="mono" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXXXXX">
+        <input id="po" class="mono" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" spellcheck="false" placeholder="XXXXXXXX">
       </div>
       <div class="field" data-key="herramienta">
         <label for="herramienta"><span class="n">4</span>Herramienta <span class="req">*</span></label>
@@ -542,6 +542,10 @@ input[type="date"] { min-height: 30px; }
     update();
   });
   ["subarea", "modo", "impacto"].forEach(function (id) { $(id).addEventListener("change", update); });
+  $("po").addEventListener("input", function (e) {
+    var el = e.target, d = el.value.replace(/\D/g, "");
+    if (d !== el.value) el.value = d;
+  });
   ["po", "descripcion", "responsable"].forEach(function (id) { $(id).addEventListener("input", update); });
   $("responsable").addEventListener("input", showSugg);
   $("responsable").addEventListener("blur", function () { setTimeout(hideSugg, 150); });
