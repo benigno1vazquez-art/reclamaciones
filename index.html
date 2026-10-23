@@ -99,6 +99,9 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.4; }
 .folio { font-family: var(--font-mono); font-size: 18px; font-weight: 600; letter-spacing: 0.02em; min-width: 0; overflow-wrap: anywhere; }
 .btn.small { padding: 8px 12px; font-size: 14px; flex: none; }
 input[type="date"] { min-height: 30px; }
+.names-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.names-panel { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+.names-panel textarea { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 15px; min-height: 160px; }
 .preview-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .status { font-size: 13px; color: var(--ok); }
 .status.warn { color: var(--warn); }
@@ -215,7 +218,20 @@ input[type="date"] { min-height: 30px; }
       </div>
       <div class="field" data-key="responsable">
         <label for="responsable"><span class="n">8</span>Responsable de la falla <span class="req">*</span></label>
-        <input id="responsable" type="text" autocomplete="off" autocapitalize="words" placeholder="Apellido, Nombre(s)">
+        <select id="responsableSel"></select>
+        <input id="responsable" type="text" autocomplete="off" autocapitalize="words" placeholder="Escribe: Apellido, Nombre(s)" hidden>
+        <div class="names-row">
+          <span class="help" id="namesInfo"></span>
+          <button class="btn small" id="namesEdit" type="button">Cargar nombres</button>
+        </div>
+        <div class="names-panel" id="namesPanel" hidden>
+          <span class="help">Pega la lista, un nombre por renglón. Un renglón que empieza con # es el nombre de un grupo (por ejemplo # Taller). Se guarda solo en este teléfono.</span>
+          <textarea id="namesText" spellcheck="false" placeholder="# Taller&#10;Apellido, Nombre&#10;Apellido, Nombre"></textarea>
+          <div class="names-row">
+            <button class="btn small" id="namesCancel" type="button">Cancelar</button>
+            <button class="btn small primary" id="namesSave" type="button">Guardar lista</button>
+          </div>
+        </div>
       </div>
       <div class="field" data-key="impacto">
         <label for="impacto"><span class="n">9</span>Impacto <span class="req">*</span></label>
@@ -319,6 +335,47 @@ input[type="date"] { min-height: 30px; }
     return "INC-" + String(d.getFullYear()).slice(2) + pad(d.getMonth() + 1) + pad(d.getDate()) + "-" + pad(d.getHours()) + pad(d.getMinutes()) + "-" + r;
   }
 
+  // Lista de responsables: vive solo en el teléfono (localStorage), nunca en la página pública
+  var NAMES_KEY = "incidencias.responsables.v1", OTRO = "__otro__";
+  function parseNames(text) {
+    var groups = [], cur = null;
+    text.split(/\r?\n/).forEach(function (line) {
+      var t = line.trim(); if (!t) return;
+      if (t.charAt(0) === "#") { cur = { label: t.replace(/^#+\s*/, "") || "Otros", names: [] }; groups.push(cur); return; }
+      if (!cur) { cur = { label: "", names: [] }; groups.push(cur); }
+      if (cur.names.indexOf(t) < 0) cur.names.push(t);
+    });
+    return groups.filter(function (g) { return g.names.length; });
+  }
+  function groupsToText(groups) {
+    return groups.map(function (g) { return (g.label ? "# " + g.label + "\n" : "") + g.names.join("\n"); }).join("\n\n");
+  }
+  function loadNames() { try { var v = localStorage.getItem(NAMES_KEY); return v ? JSON.parse(v) : []; } catch (e) { return []; } }
+  var nameGroups = loadNames();
+  function allNames() { var a = []; nameGroups.forEach(function (g) { a = a.concat(g.names); }); return a; }
+
+  function fillResponsables(value) {
+    var sel = $("responsableSel"); sel.innerHTML = "";
+    var total = allNames().length;
+    var o0 = document.createElement("option"); o0.value = ""; o0.textContent = total ? "Elegir…" : "Sin lista: elige Otro o carga nombres"; sel.appendChild(o0);
+    nameGroups.forEach(function (g) {
+      var parent = sel;
+      if (g.label) { parent = document.createElement("optgroup"); parent.label = g.label; sel.appendChild(parent); }
+      g.names.forEach(function (n) { var o = document.createElement("option"); o.value = n; o.textContent = n; parent.appendChild(o); });
+    });
+    var oo = document.createElement("option"); oo.value = OTRO; oo.textContent = "Otro (escribir nombre)"; sel.appendChild(oo);
+    var known = !!value && allNames().indexOf(value) >= 0;
+    sel.value = !value ? "" : known ? value : OTRO;
+    $("responsable").hidden = sel.value !== OTRO;
+    $("responsable").value = known ? "" : (value || "");
+    $("namesInfo").textContent = total ? total + " nombres guardados en este teléfono" : "Aún no hay nombres en este teléfono";
+    $("namesEdit").textContent = total ? "Editar nombres" : "Cargar nombres";
+  }
+  function responsableValue() {
+    var sel = $("responsableSel").value;
+    return sel === OTRO ? $("responsable").value.trim() : sel;
+  }
+
   function readValues() {
     var z = document.querySelector('input[name="zp57"]:checked');
     return {
@@ -331,7 +388,7 @@ input[type="date"] { min-height: 30px; }
       subarea: $("subarea").value,
       modo: $("modo").value,
       descripcion: $("descripcion").value.trim(),
-      responsable: $("responsable").value.trim(),
+      responsable: responsableValue(),
       impacto: $("impacto").value
     };
   }
@@ -423,7 +480,8 @@ input[type="date"] { min-height: 30px; }
   $("clearNo").addEventListener("click", function () { $("clearConfirm").hidden = true; });
   $("clearYes").addEventListener("click", function () {
     document.querySelectorAll('input[name="zp57"]').forEach(function (r) { r.checked = false; });
-    ["po", "herramienta", "descripcion", "responsable"].forEach(function (id) { $(id).value = ""; });
+    ["po", "herramienta", "descripcion"].forEach(function (id) { $(id).value = ""; });
+    fillResponsables("");
     $("folio").value = newFolio(); $("fecha").value = todayISO();
     ["area", "modo", "impacto"].forEach(function (id) { $(id).value = ""; });
     syncSubarea("");
@@ -442,6 +500,22 @@ input[type="date"] { min-height: 30px; }
   });
   ["subarea", "modo", "impacto"].forEach(function (id) { $(id).addEventListener("change", update); });
   ["po", "descripcion", "responsable"].forEach(function (id) { $(id).addEventListener("input", update); });
+  $("responsableSel").addEventListener("change", function () {
+    var otro = this.value === OTRO; $("responsable").hidden = !otro;
+    if (otro) $("responsable").focus();
+    update();
+  });
+  $("namesEdit").addEventListener("click", function () {
+    $("namesText").value = groupsToText(nameGroups); $("namesPanel").hidden = false; $("namesText").focus();
+  });
+  $("namesCancel").addEventListener("click", function () { $("namesPanel").hidden = true; });
+  $("namesSave").addEventListener("click", function () {
+    var keep = responsableValue();
+    nameGroups = parseNames($("namesText").value);
+    try { localStorage.setItem(NAMES_KEY, JSON.stringify(nameGroups)); } catch (e) { toast("No se pudo guardar en este teléfono"); }
+    fillResponsables(keep); $("namesPanel").hidden = true; update();
+    toast(allNames().length + " nombres guardados");
+  });
   document.querySelectorAll('input[name="zp57"]').forEach(function (r) { r.addEventListener("change", update); });
 
   // Arranque: retoma el borrador si hay uno
@@ -456,7 +530,7 @@ input[type="date"] { min-height: 30px; }
   $("po").value = start.po || "";
   $("herramienta").value = start.herramienta || "";
   $("descripcion").value = start.descripcion || "";
-  $("responsable").value = start.responsable || "";
+  fillResponsables(start.responsable || "");
   update();
 })();
 </script>
