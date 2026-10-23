@@ -1,6 +1,6 @@
-# Reclamaciones
+# Registro de Incidencias
 
-App web para iPhone que arma mensajes de reclamación con formato fijo y los copia para pegarlos en WhatsApp.
+App web para iPhone del taller mecánico: llena los 9 campos del registro de una incidencia y copia el mensaje con formato para pegarlo en WhatsApp.
 
 Dirección: https://benigno1vazquez-art.github.io/reclamaciones/
 

@@ -1,10 +1,10 @@
 {
-  "name": "Reclamaciones",
-  "short_name": "Reclamaciones",
+  "name": "Registro de Incidencias",
+  "short_name": "Incidencias",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f3f4f7",
-  "theme_color": "#2f4fd8",
+  "background_color": "#f3f5f3",
+  "theme_color": "#00893d",
   "lang": "es",
   "icons": [
     { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },

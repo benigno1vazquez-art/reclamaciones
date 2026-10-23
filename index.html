@@ -3,25 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Incidencias">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#f3f4f7">
+<meta name="theme-color" content="#f3f5f3">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
-<title>Reclamaciones WhatsApp</title>
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Reclamaciones">
+<title>Registro de Incidencias</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: una columna estilo app de iPhone; formulario arriba, vista previa tipo burbuja y barra fija de acciones abajo */
+/* Layout: una columna estilo app de iPhone; campos 1-9 en grupos, vista previa tipo burbuja y barra fija de acciones abajo */
 :root {
-  --bg: #f3f4f7;
+  --bg: #f3f5f3;
   --surface: #ffffff;
-  --fg: #1b1f2a;
-  --muted: #646b7d;
-  --line: #dde0e8;
-  --accent: #2f4fd8;
+  --fg: #1a201c;
+  --muted: #5f6b63;
+  --line: #dbe1dc;
+  --accent: #00893d;
   --accent-fg: #ffffff;
   --bubble: #e3f5dc;
   --bubble-fg: #1b2a1b;
@@ -31,25 +31,19 @@
   --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #12141b; --surface: #1c1f29; --fg: #e8eaf1; --muted: #9aa1b4; --line: #2d3140;
-    --accent: #7b93ff; --accent-fg: #0f1222; --bubble: #1f3a26; --bubble-fg: #e3f2e3;
+  :root {
+    --bg: #111513; --surface: #1b211d; --fg: #e7ece8; --muted: #9aa69e; --line: #2c342f;
+    --accent: #3fbf74; --accent-fg: #08140d; --bubble: #1f3a26; --bubble-fg: #e3f2e3;
     --warn: #f0a060; --ok: #6fd39a; color-scheme: dark;
   }
 }
-:root[data-theme="dark"] {
-  --bg: #12141b; --surface: #1c1f29; --fg: #e8eaf1; --muted: #9aa1b4; --line: #2d3140;
-  --accent: #7b93ff; --accent-fg: #0f1222; --bubble: #1f3a26; --bubble-fg: #e3f2e3;
-  --warn: #f0a060; --ok: #6fd39a; color-scheme: dark;
-}
 * { box-sizing: border-box; }
 html { padding-top: env(safe-area-inset-top, 0px); }
-body { margin: 0; }
-[hidden] { display: none !important; }
 body {
-  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px;
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px;
   -webkit-text-size-adjust: 100%;
 }
+[hidden] { display: none !important; }
 .wrap {
   max-width: 560px; margin: 0 auto;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
@@ -57,15 +51,13 @@ body {
   padding-block: 20px 140px;
   display: flex; flex-direction: column; gap: 20px;
 }
-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-header > div { min-width: 0; flex: 1 1 200px; }
+header { display: flex; flex-direction: column; gap: 10px; }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand img { height: 22px; width: auto; display: block; }
+.eyebrow { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
 h1 { font-size: 26px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
 .sub { color: var(--muted); margin: 4px 0 0; font-size: 14px; }
-.linkbtn {
-  background: none; border: 1px solid var(--line); color: var(--fg); border-radius: 10px;
-  padding: 8px 12px; font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap;
-}
-.linkbtn:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible {
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible {
   outline: 3px solid var(--accent); outline-offset: 2px;
 }
 .group { background: var(--surface); border-radius: 14px; overflow: hidden; border: 1px solid var(--line); }
@@ -74,10 +66,13 @@ h1 { font-size: 26px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
   margin: 0 0 8px 4px; font-weight: 600;
 }
 .field { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-top: 1px solid var(--line); }
-.field:first-child { border-top: 0; }
-.field label { font-size: 13px; color: var(--muted); font-weight: 500; display: flex; gap: 6px; }
+.group > .field:first-child, .group > .field.first { border-top: 0; }
+.field label { font-size: 13px; color: var(--muted); font-weight: 500; display: flex; gap: 6px; align-items: baseline; }
+.field label .n { font-family: var(--font-mono); font-size: 12px; color: var(--accent); font-weight: 600; min-width: 1.4em; }
 .field label .req { color: var(--warn); }
 .field.missing label { color: var(--warn); }
+.field .help { font-size: 12px; color: var(--muted); }
+.field.bad .help { color: var(--warn); }
 select, input, textarea {
   font: inherit; font-size: 17px; color: var(--fg); background: transparent;
   border: 0; padding: 4px 0; width: 100%; min-width: 0;
@@ -89,9 +84,18 @@ select {
   background-size: 6px 6px; background-repeat: no-repeat;
 }
 select option { color: initial; }
-input.mono { font-family: var(--font-mono); font-size: 16px; }
-textarea { resize: vertical; min-height: 72px; line-height: 1.4; }
-.preview-head { display: flex; justify-content: space-between; align-items: baseline; }
+select:disabled { color: var(--muted); opacity: 1; }
+input.mono { font-family: var(--font-mono); font-size: 16px; letter-spacing: 0.02em; }
+textarea { resize: vertical; min-height: 80px; line-height: 1.4; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg label {
+  display: flex; justify-content: center; align-items: center; text-align: center; padding: 10px 8px; border-radius: 10px;
+  border: 1px solid var(--line); color: var(--fg); font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.seg input:checked + label { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.seg input:focus-visible + label { outline: 3px solid var(--accent); outline-offset: 2px; }
+.preview-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .status { font-size: 13px; color: var(--ok); }
 .status.warn { color: var(--warn); }
 .bubble {
@@ -108,9 +112,9 @@ textarea { resize: vertical; min-height: 72px; line-height: 1.4; }
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-.actions-inner { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; }
+.actions-inner { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 10px; }
 .btn {
-  font: inherit; font-weight: 600; font-size: 16px; border-radius: 12px; padding: 14px 12px;
+  font: inherit; font-weight: 600; font-size: 16px; border-radius: 12px; padding: 14px 8px;
   border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer;
   text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center;
 }
@@ -120,189 +124,210 @@ textarea { resize: vertical; min-height: 72px; line-height: 1.4; }
   position: fixed; left: 50%; transform: translateX(-50%);
   bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 6;
   background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px;
-  font-weight: 600;
+  font-weight: 600; max-width: calc(100% - 32px); text-align: center;
 }
-.hint { color: var(--muted); font-size: 13px; line-height: 1.45; margin: 0 4px; }
-.settings textarea { font-size: 15px; min-height: 120px; }
-.settings .field small { color: var(--muted); font-size: 12px; }
-.row-btns { display: flex; gap: 10px; flex-wrap: wrap; }
-.danger { color: var(--warn); }
+.confirm { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; font-size: 14px; color: var(--muted); }
+.confirm .btn { padding: 8px 14px; font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { .btn:active { transform: none; } }
 </style>
 </head>
 <body>
-<div class="wrap" id="app">
+<div class="wrap">
   <header>
-    <div>
-      <h1>Reclamaciones</h1>
-      <p class="sub">Llena los campos y copia el mensaje para WhatsApp.</p>
+    <div class="brand">
+      <span class="eyebrow">Taller mecánico</span>
+      <img src="logo.png" alt="Schaeffler" width="168" height="22">
     </div>
-    <button class="linkbtn" id="toggleSettings" type="button">Editar listas</button>
+    <div>
+      <h1>Registro de una incidencia</h1>
+      <p class="sub">Llena los 9 campos y copia el mensaje para WhatsApp.</p>
+    </div>
   </header>
 
-  <!-- Vista principal -->
-  <section id="formView" style="display:flex;flex-direction:column;gap:20px">
-    <div>
-      <p class="group-title">Datos del cliente</p>
-      <div class="group">
-        <div class="field" data-key="cliente">
-          <label for="cliente">Nombre del cliente <span class="req">*</span></label>
-          <input id="cliente" type="text" autocomplete="off" placeholder="Ej. María López">
-        </div>
-        <div class="field" data-key="folio">
-          <label for="folio">Pedido / folio <span class="req">*</span></label>
-          <input id="folio" class="mono" type="text" autocomplete="off" inputmode="text" placeholder="Ej. PED-10482">
-        </div>
-        <div class="field" data-key="fecha">
-          <label for="fecha">Fecha</label>
-          <input id="fecha" type="date">
+  <div>
+    <p class="group-title">Orden y responsable</p>
+    <div class="group">
+      <div class="field" data-key="zp57">
+        <label id="lbl-zp57"><span class="n">1</span>¿Requiere crearle una orden ZP57? <span class="req">*</span></label>
+        <div class="seg" role="radiogroup" aria-labelledby="lbl-zp57">
+          <input type="radio" name="zp57" id="zp57-si" value="Sí requiere ZP57"><label for="zp57-si">Sí requiere</label>
+          <input type="radio" name="zp57" id="zp57-no" value="No requiere ZP57"><label for="zp57-no">No requiere</label>
         </div>
       </div>
-    </div>
-
-    <div>
-      <p class="group-title">Reclamación</p>
-      <div class="group" id="selectGroup"></div>
-    </div>
-
-    <div>
-      <p class="group-title">Detalle</p>
-      <div class="group">
-        <div class="field" data-key="detalle">
-          <label for="detalle">Descripción (opcional)</label>
-          <textarea id="detalle" placeholder="Ej. Llegaron 2 cajas abolladas de 10."></textarea>
-        </div>
+      <div class="field" data-key="area">
+        <label for="area"><span class="n">2</span>Área responsable de la falla <span class="req">*</span></label>
+        <select id="area"></select>
       </div>
     </div>
+  </div>
 
-    <div>
-      <div class="preview-head">
-        <p class="group-title">Vista previa</p>
-        <span class="status" id="status"></span>
+  <div>
+    <p class="group-title">Pieza</p>
+    <div class="group">
+      <div class="field" data-key="po">
+        <label for="po"><span class="n">3</span>PO <span class="req">*</span></label>
+        <input id="po" class="mono" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXXXXX">
       </div>
-      <div class="bubble" id="preview" aria-live="polite"></div>
-    </div>
-
-    <p class="hint">Para usarla como app: abre esta página en Safari, toca Compartir y elige “Agregar a pantalla de inicio”.</p>
-  </section>
-
-  <!-- Ajustes -->
-  <section id="settingsView" class="settings" hidden style="flex-direction:column;gap:20px">
-    <p class="hint">Escribe una opción por renglón. Los cambios se guardan en este teléfono.</p>
-    <div>
-      <p class="group-title">Encabezado del mensaje</p>
-      <div class="group">
-        <div class="field">
-          <label for="set-titulo">Título</label>
-          <input id="set-titulo" type="text">
-        </div>
+      <div class="field" data-key="herramienta">
+        <label for="herramienta"><span class="n">4</span>Herramienta <span class="req">*</span></label>
+        <input id="herramienta" class="mono" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="T-XXXXXXXX-XXXX">
+        <span class="help" id="herr-help">Formato T-XXXXXXXX-XXXX. Los guiones se ponen solos.</span>
       </div>
     </div>
-    <div>
-      <p class="group-title">Listas desplegables</p>
-      <div class="group" id="settingsLists"></div>
+  </div>
+
+  <div>
+    <p class="group-title">Falla</p>
+    <div class="group">
+      <div class="field" data-key="subarea" id="subareaField">
+        <label for="subarea"><span class="n">5</span>Sub-área <span class="req">*</span></label>
+        <select id="subarea"></select>
+      </div>
+      <div class="field" data-key="modo" id="modoField">
+        <label for="modo"><span class="n">6</span>Modo de falla <span class="req">*</span></label>
+        <select id="modo"></select>
+      </div>
+      <div class="field" data-key="descripcion">
+        <label for="descripcion"><span class="n">7</span>Descripción general de la falla <span class="req">*</span></label>
+        <textarea id="descripcion" placeholder="Ej. Diámetro fuera de tolerancia en barreno principal."></textarea>
+      </div>
+      <div class="field" data-key="responsable">
+        <label for="responsable"><span class="n">8</span>Responsable de la falla <span class="req">*</span></label>
+        <input id="responsable" type="text" autocomplete="off" autocapitalize="words" placeholder="Apellido, Nombre(s)">
+      </div>
+      <div class="field" data-key="impacto">
+        <label for="impacto"><span class="n">9</span>Impacto <span class="req">*</span></label>
+        <select id="impacto"></select>
+      </div>
     </div>
-    <div class="row-btns">
-      <button class="btn primary" id="saveSettings" type="button" style="flex:1">Guardar</button>
-      <button class="btn" id="cancelSettings" type="button" style="flex:1">Cancelar</button>
+  </div>
+
+  <div>
+    <div class="preview-head">
+      <p class="group-title">Vista previa</p>
+      <span class="status" id="status"></span>
     </div>
-    <div class="row-btns">
-      <button class="btn danger" id="resetSettings" type="button" style="flex:1">Restaurar ejemplo</button>
-    </div>
-    <p class="hint" id="resetConfirm" hidden>¿Seguro? Se borrarán tus listas. <button class="linkbtn danger" id="resetYes" type="button">Sí, restaurar</button></p>
-  </section>
+    <div class="bubble" id="preview" aria-live="polite"></div>
+  </div>
+
+  <div class="confirm" id="clearConfirm" hidden>
+    <span>¿Borrar todos los campos?</span>
+    <button class="btn" id="clearYes" type="button">Sí, borrar</button>
+    <button class="btn" id="clearNo" type="button">Cancelar</button>
+  </div>
 </div>
 
-<div class="actions" id="actions">
+<div class="actions">
   <div class="actions-inner">
     <button class="btn primary" id="copyBtn" type="button">Copiar</button>
     <a class="btn" id="waBtn" href="#" target="_blank" rel="noopener">WhatsApp</a>
-    <button class="btn" id="clearBtn" type="button" aria-label="Limpiar formulario">Limpiar</button>
+    <button class="btn" id="clearBtn" type="button">Limpiar</button>
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
 (function () {
-  var STORE_KEY = "reclamaciones.config.v1";
-  var DRAFT_KEY = "reclamaciones.draft.v1";
+  var DRAFT_KEY = "incidencias.draft.v1";
 
-  // Listas de ejemplo; el usuario las cambia en "Editar listas"
-  var DEFAULT = {
-    titulo: "RECLAMACIÓN",
-    lists: [
-      { key: "tipo", label: "Tipo de reclamación", required: true,
-        options: ["Producto dañado", "Producto incorrecto", "Faltante de producto", "Retraso en entrega", "Cobro incorrecto", "Mala atención", "Otro"] },
-      { key: "area", label: "Área responsable", required: true,
-        options: ["Ventas", "Almacén", "Paquetería", "Facturación", "Atención a clientes"] },
-      { key: "prioridad", label: "Prioridad", required: true,
-        options: ["Baja", "Media", "Alta", "Urgente"] },
-      { key: "solucion", label: "Solución solicitada", required: true,
-        options: ["Reemplazo", "Reembolso", "Nota de crédito", "Reenvío", "Visita técnica", "Solo registrar"] }
-    ]
+  var AREAS = ["Compras", "Diseño", "Máquinas", "Matricería", "Planeación", "Programación",
+    "Proveedor Externo", "Recubrimiento", "Sala CMM", "Tool Room", "Tratamiento Térmico"];
+
+  // Sub-áreas por área; las áreas que no aparecen aquí no tienen sub-área
+  var SUBAREAS = {
+    "Diseño": ["Diseño Ensamble", "Diseño Estampados", "Diseño Externo"],
+    "Máquinas": ["Corte de Material", "Corte Láser", "Erosión de Hilo", "Erosión de Penetración",
+      "Fresado en Duro CNC", "Fresado en Suave CNC", "Rectificado Cilíndrico", "Rectificado de Coordenadas",
+      "Rectificado Plano", "Torno Convencional", "Torno en Duro CNC", "Torno en Suave CNC"],
+    "Matricería": ["Preparación para Temple", "Inspección y Pulido", "Inspección Final"]
   };
 
-  function load(key) { try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
-  function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
-  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  var MODOS = ["Acabado", "Acotación", "Ajustes", "Alineación", "Altura / Espesor", "Barrenos", "Chaflanes",
+    "Componentes", "Compras", "Cuerdas", "Daño", "Diámetros", "Dimensión", "Diseño", "Documentación",
+    "Enterrón", "Extravío", "Filos", "Fondos", "GD&T", "Geometría", "Marcaje / Identificación", "Material",
+    "Modelado", "Otro", "Perfiles / Contornos", "Proceso", "Proceso faltante", "Proceso no necesario",
+    "Proceso no terminado", "Programa", "Proveedor Externo", "Proyección", "Recubrimiento", "Soldadura",
+    "Superficie", "Tratamiento Térmico"];
 
-  var config = load(STORE_KEY) || clone(DEFAULT);
+  var IMPACTOS = ["0 - N/A", "1 - Remaquinado", "2 - Reparación", "3 - Reposición", "4 - Remaquinado (Externo)",
+    "5 - Reparación (Externo)", "6 - Reposición (Externo)", "7 - Retraso de Herramienta",
+    "8 - Actualización de dibujo", "9 - Desviación con Cliente", "10 - Daño en Máquina"];
+
   var $ = function (id) { return document.getElementById(id); };
+  function load() { try { var v = localStorage.getItem(DRAFT_KEY); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function save(v) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(v)); } catch (e) {} }
 
-  function todayISO() {
-    var d = new Date(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
-    return d.getFullYear() + "-" + m + "-" + day;
-  }
-  function fmtDate(iso) {
-    if (!iso) return "";
-    var p = iso.split("-"); return p[2] + "/" + p[1] + "/" + p[0];
+  function fill(sel, options, value) {
+    sel.innerHTML = "";
+    var o0 = document.createElement("option"); o0.value = ""; o0.textContent = "Elegir…"; sel.appendChild(o0);
+    options.forEach(function (op) { var o = document.createElement("option"); o.value = op; o.textContent = op; sel.appendChild(o); });
+    sel.value = options.indexOf(value) >= 0 ? value : "";
   }
 
-  function renderSelects(values) {
-    var g = $("selectGroup"); g.innerHTML = "";
-    config.lists.forEach(function (l) {
-      var f = document.createElement("div"); f.className = "field"; f.dataset.key = l.key;
-      var lab = document.createElement("label"); lab.htmlFor = "sel-" + l.key;
-      lab.textContent = l.label + " ";
-      if (l.required) { var s = document.createElement("span"); s.className = "req"; s.textContent = "*"; lab.appendChild(s); }
-      var sel = document.createElement("select"); sel.id = "sel-" + l.key;
-      var o0 = document.createElement("option"); o0.value = ""; o0.textContent = "Elegir…"; sel.appendChild(o0);
-      l.options.forEach(function (op) { var o = document.createElement("option"); o.value = op; o.textContent = op; sel.appendChild(o); });
-      if (values && values[l.key] && l.options.indexOf(values[l.key]) >= 0) sel.value = values[l.key];
-      sel.addEventListener("change", update);
-      f.appendChild(lab); f.appendChild(sel); g.appendChild(f);
-    });
+  function syncSubarea(value) {
+    var area = $("area").value, list = SUBAREAS[area], sel = $("subarea");
+    if (list) { sel.disabled = false; fill(sel, list, value); return; }
+    sel.disabled = true; sel.innerHTML = "";
+    var o = document.createElement("option"); o.value = "";
+    o.textContent = area ? "No aplica para " + area : "Elige primero el área";
+    sel.appendChild(o);
   }
+
+  // T-XXXXXXXX-XXXX: acepta lo que se teclee y acomoda la T y los guiones
+  function formatHerramienta(raw) {
+    var s = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (s.charAt(0) === "T") s = s.slice(1);
+    s = s.slice(0, 12);
+    if (!s) return "";
+    var out = "T-" + s.slice(0, 8);
+    if (s.length > 8) out += "-" + s.slice(8);
+    return out;
+  }
+  function herramientaOk(v) { return /^T-[A-Z0-9]{8}-[A-Z0-9]{4}$/.test(v); }
 
   function readValues() {
-    var v = { cliente: $("cliente").value.trim(), folio: $("folio").value.trim(), fecha: $("fecha").value, detalle: $("detalle").value.trim() };
-    config.lists.forEach(function (l) { var el = $("sel-" + l.key); v[l.key] = el ? el.value : ""; });
-    return v;
+    var z = document.querySelector('input[name="zp57"]:checked');
+    return {
+      zp57: z ? z.value : "",
+      area: $("area").value,
+      po: $("po").value.trim(),
+      herramienta: $("herramienta").value.trim(),
+      subarea: $("subarea").value,
+      modo: $("modo").value,
+      descripcion: $("descripcion").value.trim(),
+      responsable: $("responsable").value.trim(),
+      impacto: $("impacto").value
+    };
   }
 
+  function hasSubarea(v) { return !!SUBAREAS[v.area]; }
+
   function buildMessage(v) {
-    var lines = [];
-    lines.push("*" + (config.titulo || "RECLAMACIÓN") + "*");
-    lines.push("");
-    lines.push("*Fecha:* " + (fmtDate(v.fecha) || "—"));
-    lines.push("*Cliente:* " + (v.cliente || "—"));
-    lines.push("*Pedido / folio:* " + (v.folio || "—"));
-    lines.push("");
-    config.lists.forEach(function (l) { lines.push("*" + l.label + ":* " + (v[l.key] || "—")); });
-    if (v.detalle) { lines.push(""); lines.push("*Detalle:*"); lines.push(v.detalle); }
+    var d = function (x) { return x || "—"; };
+    var lines = [
+      "*REGISTRO DE INCIDENCIA*",
+      "",
+      "*1) ZP57:* " + d(v.zp57),
+      "*2) Área responsable:* " + d(v.area),
+      "*3) PO:* " + d(v.po),
+      "*4) Herramienta:* " + d(v.herramienta),
+      "*5) Sub-área:* " + (hasSubarea(v) ? d(v.subarea) : "N/A"),
+      "*6) Modo de falla:* " + d(v.modo),
+      "*7) Descripción:* " + d(v.descripcion),
+      "*8) Responsable:* " + d(v.responsable),
+      "*9) Impacto:* " + d(v.impacto)
+    ];
     return lines.join("\n");
+  }
+
+  function missingFields(v) {
+    var keys = ["zp57", "area", "po", "herramienta", "modo", "descripcion", "responsable", "impacto"];
+    if (hasSubarea(v)) keys.push("subarea");
+    return keys.filter(function (k) { return !v[k]; });
   }
 
   function escapeHTML(s) { return s.replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function waToHTML(s) { return escapeHTML(s).replace(/\*([^*\n]+)\*/g, "<b>$1</b>"); }
-
-  function missingFields(v) {
-    var m = [];
-    if (!v.cliente) m.push({ key: "cliente", label: "Cliente" });
-    if (!v.folio) m.push({ key: "folio", label: "Folio" });
-    config.lists.forEach(function (l) { if (l.required && !v[l.key]) m.push({ key: l.key, label: l.label }); });
-    return m;
-  }
 
   var current = "";
   function update() {
@@ -310,28 +335,29 @@ textarea { resize: vertical; min-height: 72px; line-height: 1.4; }
     current = buildMessage(v);
     $("preview").innerHTML = waToHTML(current);
     var miss = missingFields(v);
-    document.querySelectorAll(".field.missing").forEach(function (f) { f.classList.remove("missing"); });
+    var bad = v.herramienta && !herramientaOk(v.herramienta);
+    document.querySelector('.field[data-key="herramienta"]').classList.toggle("bad", !!bad);
+    document.querySelectorAll(".field.missing").forEach(function (f) {
+      if (v[f.dataset.key]) f.classList.remove("missing");
+    });
     var st = $("status");
-    if (miss.length) {
-      st.className = "status warn";
-      st.textContent = "Faltan " + miss.length + " campo" + (miss.length > 1 ? "s" : "");
-    } else {
-      st.className = "status"; st.textContent = "Listo para enviar";
-    }
+    if (miss.length) { st.className = "status warn"; st.textContent = "Faltan " + miss.length + " campo" + (miss.length > 1 ? "s" : ""); }
+    else if (bad) { st.className = "status warn"; st.textContent = "Revisa la herramienta"; }
+    else { st.className = "status"; st.textContent = "Listo para enviar"; }
     $("waBtn").href = "https://wa.me/?text=" + encodeURIComponent(current);
-    save(DRAFT_KEY, v);
+    save(v);
   }
 
   function markMissing() {
     var miss = missingFields(readValues());
-    miss.forEach(function (m) { var f = document.querySelector('.field[data-key="' + m.key + '"]'); if (f) f.classList.add("missing"); });
+    miss.forEach(function (k) { var f = document.querySelector('.field[data-key="' + k + '"]'); if (f) f.classList.add("missing"); });
     return miss;
   }
 
   var toastTimer;
   function toast(msg) {
     var t = $("toast"); t.textContent = msg; t.hidden = false;
-    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 2200);
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 2400);
   }
 
   function fallbackCopy(text) {
@@ -347,74 +373,47 @@ textarea { resize: vertical; min-height: 72px; line-height: 1.4; }
     var text = current;
     var done = function (ok) {
       if (!ok) { toast("No se pudo copiar. Mantén presionado el texto para copiarlo."); return; }
-      toast(miss.length ? "Copiado (faltan " + miss.length + " campos)" : "Mensaje copiado");
+      toast(miss.length ? "Copiado, pero faltan " + miss.length + " campos" : "Mensaje copiado");
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(fallbackCopy(text)); });
     } else { done(fallbackCopy(text)); }
   });
-
   $("waBtn").addEventListener("click", function () { markMissing(); });
 
-  $("clearBtn").addEventListener("click", function () {
-    ["cliente", "folio", "detalle"].forEach(function (id) { $(id).value = ""; });
-    $("fecha").value = todayISO();
-    config.lists.forEach(function (l) { var el = $("sel-" + l.key); if (el) el.value = ""; });
-    update(); toast("Formulario limpio");
+  $("clearBtn").addEventListener("click", function () { $("clearConfirm").hidden = false; $("clearConfirm").scrollIntoView({ block: "center" }); });
+  $("clearNo").addEventListener("click", function () { $("clearConfirm").hidden = true; });
+  $("clearYes").addEventListener("click", function () {
+    document.querySelectorAll('input[name="zp57"]').forEach(function (r) { r.checked = false; });
+    ["po", "herramienta", "descripcion", "responsable"].forEach(function (id) { $(id).value = ""; });
+    ["area", "modo", "impacto"].forEach(function (id) { $(id).value = ""; });
+    syncSubarea("");
+    document.querySelectorAll(".field.missing").forEach(function (f) { f.classList.remove("missing"); });
+    $("clearConfirm").hidden = true;
+    update(); window.scrollTo(0, 0); toast("Formulario limpio");
   });
 
-  ["cliente", "folio", "fecha", "detalle"].forEach(function (id) { $(id).addEventListener("input", update); });
-
-  // Ajustes
-  function openSettings() {
-    $("set-titulo").value = config.titulo;
-    var g = $("settingsLists"); g.innerHTML = "";
-    config.lists.forEach(function (l) {
-      var f = document.createElement("div"); f.className = "field";
-      var lab = document.createElement("label"); lab.htmlFor = "set-" + l.key; lab.textContent = l.label;
-      var name = document.createElement("input"); name.type = "text"; name.id = "set-name-" + l.key; name.value = l.label;
-      name.setAttribute("aria-label", "Nombre del campo");
-      var small = document.createElement("small"); small.textContent = "Opciones (una por renglón)";
-      var ta = document.createElement("textarea"); ta.id = "set-" + l.key; ta.value = l.options.join("\n");
-      f.appendChild(lab); f.appendChild(name); f.appendChild(small); f.appendChild(ta); g.appendChild(f);
-    });
-    $("formView").hidden = true; $("actions").hidden = true;
-    $("settingsView").hidden = false; $("settingsView").style.display = "flex";
-    $("resetConfirm").hidden = true;
-    $("toggleSettings").textContent = "Volver";
-    window.scrollTo(0, 0);
-  }
-  function closeSettings() {
-    $("settingsView").hidden = true; $("settingsView").style.display = "";
-    $("formView").hidden = false; $("actions").hidden = false;
-    $("toggleSettings").textContent = "Editar listas";
-  }
-  $("toggleSettings").addEventListener("click", function () { $("settingsView").hidden ? openSettings() : closeSettings(); });
-  $("cancelSettings").addEventListener("click", closeSettings);
-  $("saveSettings").addEventListener("click", function () {
-    var keep = readValues();
-    config.titulo = $("set-titulo").value.trim() || "RECLAMACIÓN";
-    config.lists.forEach(function (l) {
-      var n = $("set-name-" + l.key).value.trim(); if (n) l.label = n;
-      l.options = $("set-" + l.key).value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
-    });
-    save(STORE_KEY, config);
-    renderSelects(keep); update(); closeSettings(); toast("Listas guardadas");
+  $("area").addEventListener("change", function () { syncSubarea(""); update(); });
+  $("herramienta").addEventListener("input", function (e) {
+    var el = e.target, f = formatHerramienta(el.value);
+    if (f !== el.value) el.value = f;
+    update();
   });
-  $("resetSettings").addEventListener("click", function () { $("resetConfirm").hidden = false; });
-  $("resetYes").addEventListener("click", function () {
-    config = clone(DEFAULT); save(STORE_KEY, config);
-    renderSelects(readValues()); update(); closeSettings(); toast("Listas de ejemplo restauradas");
-  });
+  ["subarea", "modo", "impacto"].forEach(function (id) { $(id).addEventListener("change", update); });
+  ["po", "descripcion", "responsable"].forEach(function (id) { $(id).addEventListener("input", update); });
+  document.querySelectorAll('input[name="zp57"]').forEach(function (r) { r.addEventListener("change", update); });
 
-  // Arranque: borrador guardado o ejemplo
-  var draft = load(DRAFT_KEY);
-  var start = draft || { cliente: "María López", folio: "PED-10482", fecha: todayISO(), tipo: "Producto dañado", area: "Paquetería", prioridad: "Alta", solucion: "Reemplazo", detalle: "Llegaron 2 cajas abolladas de 10. Envío fotos aparte." };
-  $("cliente").value = start.cliente || "";
-  $("folio").value = start.folio || "";
-  $("fecha").value = start.fecha || todayISO();
-  $("detalle").value = start.detalle || "";
-  renderSelects(start);
+  // Arranque: retoma el borrador si hay uno
+  var start = load() || {};
+  fill($("area"), AREAS, start.area);
+  fill($("modo"), MODOS, start.modo);
+  fill($("impacto"), IMPACTOS, start.impacto);
+  syncSubarea(start.subarea);
+  document.querySelectorAll('input[name="zp57"]').forEach(function (r) { r.checked = r.value === start.zp57; });
+  $("po").value = start.po || "";
+  $("herramienta").value = start.herramienta || "";
+  $("descripcion").value = start.descripcion || "";
+  $("responsable").value = start.responsable || "";
   update();
 })();
 </script>
