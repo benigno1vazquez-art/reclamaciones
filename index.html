@@ -108,6 +108,10 @@ input[type="date"] { min-height: 30px; }
 .sugg li small { color: var(--muted); font-size: 12px; flex: none; align-self: center; }
 .sugg li.active, .sugg li:active { background: var(--bubble); color: var(--bubble-fg); }
 .sugg li b { color: var(--accent); font-weight: 700; }
+.textlink {
+  font: inherit; font-size: 12px; color: var(--muted); background: none; border: 0; padding: 2px 0;
+  text-decoration: underline; text-underline-offset: 2px; cursor: pointer; flex: none;
+}
 .names-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .names-panel { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
 .names-panel textarea { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 15px; min-height: 160px; }
@@ -233,7 +237,7 @@ input[type="date"] { min-height: 30px; }
         </div>
         <div class="names-row">
           <span class="help" id="namesInfo"></span>
-          <button class="btn small" id="namesEdit" type="button">Cargar nombres</button>
+          <button class="textlink" id="namesEdit" type="button">Cargar nombres</button>
         </div>
         <div class="names-panel" id="namesPanel" hidden>
           <span class="help">Pega la lista, un nombre por renglón. Un renglón que empieza con # es el nombre de un grupo (por ejemplo # Taller). Se guarda solo en este teléfono.</span>
