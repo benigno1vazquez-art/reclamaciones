@@ -215,8 +215,8 @@ input[type="date"] { min-height: 30px; }
     <div class="group">
       <div class="field" data-key="po">
         <label for="po"><span class="n">3</span>PO <span class="req">*</span></label>
-        <input id="po" class="mono" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" spellcheck="false" placeholder="XXXXXXXX">
-        <span class="help" id="po-help">Debe tener 8 dígitos.</span>
+        <input id="po" class="mono" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" spellcheck="false" placeholder="7 u 8 dígitos">
+        <span class="help" id="po-help">Debe tener 7 u 8 dígitos.</span>
       </div>
       <div class="field" data-key="herramienta">
         <label for="herramienta"><span class="n">4</span>Herramienta <span class="req">*</span></label>
@@ -497,13 +497,13 @@ input[type="date"] { min-height: 30px; }
   var LABELS = { fecha: "Fecha", zp57: "ZP57", area: "Área", po: "PO", herramienta: "Herramienta", subarea: "Sub-área",
     modo: "Modo de falla", descripcion: "Descripción", responsable: "Responsable", impacto: "Impacto" };
   var ORDER = ["fecha", "zp57", "area", "po", "herramienta", "subarea", "modo", "descripcion", "responsable", "impacto"];
-  function poOk(x) { return /^\d{8}$/.test(x); }
+  function poOk(x) { return /^\d{7,8}$/.test(x); }
   // Todo lo que impide copiar o enviar: campos vacíos y formatos incorrectos, en el orden del formulario
   function problems(v) {
     var miss = missingFields(v), out = [];
     ORDER.forEach(function (k) {
       if (miss.indexOf(k) >= 0) out.push({ key: k, text: LABELS[k] });
-      else if (k === "po" && !poOk(v.po)) out.push({ key: k, text: "PO (8 dígitos)" });
+      else if (k === "po" && !poOk(v.po)) out.push({ key: k, text: "PO (7 u 8 dígitos)" });
       else if (k === "herramienta" && !herramientaOk(v.herramienta)) out.push({ key: k, text: "Herramienta (T-XXXXXXXX-XXXX)" });
     });
     return out;
