@@ -148,6 +148,7 @@ input[type="date"] { min-height: 30px; }
   border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer;
   text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center;
 }
+.btn[aria-disabled="true"] { opacity: 0.45; }
 .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 .btn:active { transform: scale(0.98); }
 .toast {
@@ -214,7 +215,8 @@ input[type="date"] { min-height: 30px; }
     <div class="group">
       <div class="field" data-key="po">
         <label for="po"><span class="n">3</span>PO <span class="req">*</span></label>
-        <input id="po" class="mono" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" spellcheck="false" placeholder="XXXXXXXX">
+        <input id="po" class="mono" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" spellcheck="false" placeholder="XXXXXXXX">
+        <span class="help" id="po-help">Debe tener 8 dígitos.</span>
       </div>
       <div class="field" data-key="herramienta">
         <label for="herramienta"><span class="n">4</span>Herramienta <span class="req">*</span></label>
@@ -492,28 +494,53 @@ input[type="date"] { min-height: 30px; }
   function waToHTML(s) { return escapeHTML(s).replace(/\*([^*\n]+)\*/g, "<b>$1</b>"); }
 
   var current = "";
+  var LABELS = { fecha: "Fecha", zp57: "ZP57", area: "Área", po: "PO", herramienta: "Herramienta", subarea: "Sub-área",
+    modo: "Modo de falla", descripcion: "Descripción", responsable: "Responsable", impacto: "Impacto" };
+  var ORDER = ["fecha", "zp57", "area", "po", "herramienta", "subarea", "modo", "descripcion", "responsable", "impacto"];
+  function poOk(x) { return /^\d{8}$/.test(x); }
+  // Todo lo que impide copiar o enviar: campos vacíos y formatos incorrectos, en el orden del formulario
+  function problems(v) {
+    var miss = missingFields(v), out = [];
+    ORDER.forEach(function (k) {
+      if (miss.indexOf(k) >= 0) out.push({ key: k, text: LABELS[k] });
+      else if (k === "po" && !poOk(v.po)) out.push({ key: k, text: "PO (8 dígitos)" });
+      else if (k === "herramienta" && !herramientaOk(v.herramienta)) out.push({ key: k, text: "Herramienta (T-XXXXXXXX-XXXX)" });
+    });
+    return out;
+  }
   function update() {
     var v = readValues();
     current = buildMessage(v);
     $("preview").innerHTML = waToHTML(current);
-    var miss = missingFields(v);
+    var probs = problems(v);
     var bad = v.herramienta && !herramientaOk(v.herramienta);
     document.querySelector('.field[data-key="herramienta"]').classList.toggle("bad", !!bad);
+    document.querySelector('.field[data-key="po"]').classList.toggle("bad", !!v.po && !poOk(v.po));
     document.querySelectorAll(".field.missing").forEach(function (f) {
-      if (v[f.dataset.key]) f.classList.remove("missing");
+      if (!probs.some(function (p) { return p.key === f.dataset.key; })) f.classList.remove("missing");
     });
     var st = $("status");
-    if (miss.length) { st.className = "status warn"; st.textContent = "Faltan " + miss.length + " campo" + (miss.length > 1 ? "s" : ""); }
-    else if (bad) { st.className = "status warn"; st.textContent = "Revisa la herramienta"; }
+    if (probs.length) { st.className = "status warn"; st.textContent = "Faltan " + probs.length + " dato" + (probs.length > 1 ? "s" : ""); }
     else { st.className = "status"; st.textContent = "Listo para enviar"; }
+    ["copyBtn", "waBtn", "shareBtn"].forEach(function (id) { $(id).setAttribute("aria-disabled", probs.length ? "true" : "false"); });
     $("waBtn").href = "https://wa.me/?text=" + encodeURIComponent(current);
     save(v);
   }
 
   function markMissing() {
-    var miss = missingFields(readValues());
-    miss.forEach(function (k) { var f = document.querySelector('.field[data-key="' + k + '"]'); if (f) f.classList.add("missing"); });
-    return miss;
+    var probs = problems(readValues());
+    probs.forEach(function (p) { var f = document.querySelector('.field[data-key="' + p.key + '"]'); if (f) f.classList.add("missing"); });
+    return probs;
+  }
+  // Si falta algo: marca los campos, lleva al primero y avisa qué falta. Devuelve true si se puede enviar.
+  function readyOrWarn() {
+    var probs = markMissing();
+    if (!probs.length) return true;
+    var f = document.querySelector('.field[data-key="' + probs[0].key + '"]');
+    if (f) f.scrollIntoView({ block: "center", behavior: "smooth" });
+    var names = probs.slice(0, 3).map(function (p) { return p.text; }).join(", ");
+    toast("No se puede enviar. Falta: " + names + (probs.length > 3 ? " y " + (probs.length - 3) + " más" : ""));
+    return false;
   }
 
   var toastTimer;
@@ -531,17 +558,17 @@ input[type="date"] { min-height: 30px; }
   }
 
   $("copyBtn").addEventListener("click", function () {
-    var miss = markMissing();
+    if (!readyOrWarn()) return;
     var text = current;
     var done = function (ok) {
       if (!ok) { toast("No se pudo copiar. Mantén presionado el texto para copiarlo."); return; }
-      toast(miss.length ? "Copiado, pero faltan " + miss.length + " campos" : "Mensaje copiado");
+      toast("Mensaje copiado");
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(fallbackCopy(text)); });
     } else { done(fallbackCopy(text)); }
   });
-  $("waBtn").addEventListener("click", function () { markMissing(); });
+  $("waBtn").addEventListener("click", function (e) { if (!readyOrWarn()) e.preventDefault(); });
 
   // Fotos: viven solo en memoria mientras la app está abierta; se mandan con la hoja de Compartir del iPhone
   var photos = [];
@@ -566,7 +593,7 @@ input[type="date"] { min-height: 30px; }
     e.target.value = ""; renderPhotos();
   });
   $("shareBtn").addEventListener("click", function () {
-    markMissing();
+    if (!readyOrWarn()) return;
     var files = photos.map(function (p) { return p.file; });
     var data = { files: files, text: current };
     if (!navigator.share || (navigator.canShare && !navigator.canShare({ files: files }))) {
@@ -604,7 +631,7 @@ input[type="date"] { min-height: 30px; }
   });
   ["subarea", "modo", "impacto"].forEach(function (id) { $(id).addEventListener("change", update); });
   $("po").addEventListener("input", function (e) {
-    var el = e.target, d = el.value.replace(/\D/g, "");
+    var el = e.target, d = el.value.replace(/\D/g, "").slice(0, 8);
     if (d !== el.value) el.value = d;
   });
   ["po", "descripcion", "responsable"].forEach(function (id) { $(id).addEventListener("input", update); });
