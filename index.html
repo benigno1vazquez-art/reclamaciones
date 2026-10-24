@@ -183,7 +183,7 @@ input[type="date"] { min-height: 30px; }
           <output id="folio" class="folio"></output>
           <button class="btn small" id="newFolio" type="button">Nuevo folio</button>
         </div>
-        <span class="help">Se genera solo con la fecha, la hora y dos letras al azar, así no se repite aunque lo mande otra persona.</span>
+        <span class="help">Se genera solo: WA, la fecha (año, mes, día) y la hora (hora, minuto, segundo).</span>
       </div>
       <div class="field" data-key="fecha">
         <label for="fecha">Fecha <span class="req">*</span></label>
@@ -364,13 +364,10 @@ input[type="date"] { min-height: 30px; }
   function pad(n) { return String(n).padStart(2, "0"); }
   function todayISO() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
   function fmtDate(iso) { if (!iso) return ""; var p = iso.split("-"); return p[2] + "/" + p[1] + "/" + p[0]; }
-  // INC-AAMMDD-HHMM-XX: fecha y hora de creación más dos caracteres al azar
+  // WA-AAMMDD-HHMMSS: fecha y hora de creación (con segundos)
   function newFolio() {
-    var d = new Date(), abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", r = "";
-    var rnd = new Uint32Array(2);
-    try { crypto.getRandomValues(rnd); } catch (e) { rnd = [Math.random() * 1e9, Math.random() * 1e9]; }
-    for (var i = 0; i < 2; i++) r += abc.charAt(Math.floor(rnd[i]) % abc.length);
-    return "INC-" + String(d.getFullYear()).slice(2) + pad(d.getMonth() + 1) + pad(d.getDate()) + "-" + pad(d.getHours()) + pad(d.getMinutes()) + "-" + r;
+    var d = new Date();
+    return "WA-" + String(d.getFullYear()).slice(2) + pad(d.getMonth() + 1) + pad(d.getDate()) + "-" + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
   }
 
   // Lista de responsables: vive solo en el teléfono (localStorage), nunca en la página pública
