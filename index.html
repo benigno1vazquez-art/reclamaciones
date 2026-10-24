@@ -586,7 +586,7 @@ input[type="date"] { min-height: 30px; }
   $("clearNo").addEventListener("click", function () { $("clearConfirm").hidden = true; });
   $("clearYes").addEventListener("click", function () {
     document.querySelectorAll('input[name="zp57"]').forEach(function (r) { r.checked = false; });
-    ["po", "herramienta", "descripcion"].forEach(function (id) { $(id).value = ""; });
+    ["po", "herramienta", "descripcion", "responsable"].forEach(function (id) { $(id).value = ""; });
     photos.forEach(function (p) { URL.revokeObjectURL(p.url); }); photos = []; renderPhotos();
     hideSugg();
     $("folio").value = newFolio(); $("fecha").value = todayISO();
